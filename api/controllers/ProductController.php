@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../models/Product.php';
 require_once __DIR__ . '/../utils/Response.php';
 require_once __DIR__ . '/../utils/Validator.php';
+require_once __DIR__ . '/../utils/helpers.php';
 
 class ProductController {
     private $productModel;
@@ -210,13 +211,6 @@ class ProductController {
             Response::error('Failed to delete product: ' . $e->getMessage(), null, 500);
         }
     }
-}
-
-/**
- * Helper function to sanitize strings
- */
-function sanitize($string) {
-    return htmlspecialchars(strip_tags(trim($string)), ENT_QUOTES, 'UTF-8');
 }
 
 ?>

@@ -101,10 +101,17 @@ CREATE TABLE IF NOT EXISTS `product_images` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Sample data
-INSERT INTO `products` (`name`, `description`, `base_price`, `category`, `in_stock`, `featured`) VALUES
-('Traditional Drum', 'Handcrafted traditional drum made by local artisans', 5000, 'Instruments', 1, 1),
-('Cultural Art Print', 'Beautiful print featuring traditional Kikuyu art', 2000, 'Art', 1, 1),
-('Wellness Tea Blend', 'Traditional herbal tea blend for wellness', 800, 'Wellness', 1, 0);
+-- Sample data
+INSERT INTO `products` (`id`, `name`, `description`, `base_price`, `category`, `in_stock`, `featured`) VALUES
+(1, 'Art carving', 'Handcrafted traditional art carving made by local artisans', 5000, 'Art', 1, 1),
+(2, 'Cultural Art Print', 'Beautiful print featuring traditional Kikuyu art', 2000, 'Art', 1, 1),
+(3, 'Decorated callabash', 'Traditional decorated callabash for cultural use', 800, 'Instruments', 1, 0),
+(4, 'Gĩkũyũ Cultural Art Frame', 'Handcrafted cultural art featuring traditional Gĩkũyũ warrior with spear', 3500, 'Art', 1, 1),
+(5, 'Mŭmbi Heritage Art Frame', 'Beautiful handcrafted art celebrating Mŭmbi heritage with traditional fabrics', 3500, 'Art', 1, 1),
+(6, 'Warrior Cultural Art', 'Traditional warrior art piece with authentic cultural elements', 3200, 'Art', 1, 0),
+(7, 'Cultural Bookmark Set', 'Handcrafted bookmarks with traditional designs', 500, 'Art', 1, 0),
+(8, 'Traditional Textile Art', 'Authentic textile art with traditional African patterns', 4000, 'Art', 1, 1),
+(9, 'Tŭrĩ A Mŭmbi Greeting Cards', 'Beautiful handcrafted greeting cards with cultural designs', 1500, 'Art', 1, 0);
 
 -- Sample product variants
 INSERT INTO `product_variants` (`product_id`, `name`, `price`, `stock`, `sku`) VALUES
@@ -114,4 +121,23 @@ INSERT INTO `product_variants` (`product_id`, `name`, `price`, `stock`, `sku`) V
 (2, 'A4', 2000, 20, 'ART-A4-001'),
 (2, 'A3', 3500, 15, 'ART-A3-001'),
 (3, '100g', 800, 50, 'TEA-100-001'),
-(3, '250g', 1800, 30, 'TEA-250-001');
+(3, '250g', 1800, 30, 'TEA-250-001'),
+(4, 'Standard', 3500, 8, 'ART-GIKUYU-001'),
+(5, 'Standard', 3500, 6, 'ART-MUMBI-001'),
+(6, 'Standard', 3200, 10, 'ART-WARRIOR-001'),
+(7, 'Single', 500, 25, 'BOOK-MARK-001'),
+(7, 'Set of 3', 1200, 15, 'BOOK-MARK-SET-001'),
+(8, 'Standard', 4000, 5, 'ART-TEXTILE-001'),
+(9, 'Set of 5', 1500, 20, 'CARDS-SET-001');
+
+-- Sample product images
+INSERT INTO `product_images` (`product_id`, `image_url`, `sort_order`) VALUES
+(1, '/images/artistic2.jpg', 0),
+(2, '/images/artistic1.jpg', 0),
+(3, '/images/callabash.jpg', 0),
+(4, '/images/product-gikuyu-art.jpg', 0),
+(5, '/images/product-mumbi-art.jpg', 0),
+(6, '/images/product-warrior-art.jpg', 0),
+(7, '/images/product-bookmark.jpg', 0),
+(8, '/images/product-textile-art.jpg', 0),
+(9, '/images/product-cards.jpg', 0);

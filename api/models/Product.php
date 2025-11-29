@@ -13,6 +13,9 @@ class Product {
     /**
      * Get all products
      */
+    /**
+     * Get all products
+     */
     public function getAll($limit = null, $offset = 0) {
         $query = "SELECT * FROM products ORDER BY created_at DESC";
         
@@ -29,6 +32,7 @@ class Product {
         $products = [];
         while ($row = $result->fetch_assoc()) {
             $row['variants'] = $this->getVariants($row['id']);
+            $row['images'] = $this->getImages($row['id']);
             $products[] = $row;
         }
 
@@ -46,6 +50,7 @@ class Product {
 
         if ($row = $result->fetch_assoc()) {
             $row['variants'] = $this->getVariants($row['id']);
+            $row['images'] = $this->getImages($row['id']);
             return $row;
         }
 
@@ -73,6 +78,7 @@ class Product {
         $products = [];
         while ($row = $result->fetch_assoc()) {
             $row['variants'] = $this->getVariants($row['id']);
+            $row['images'] = $this->getImages($row['id']);
             $products[] = $row;
         }
 
@@ -92,6 +98,7 @@ class Product {
         $products = [];
         while ($row = $result->fetch_assoc()) {
             $row['variants'] = $this->getVariants($row['id']);
+            $row['images'] = $this->getImages($row['id']);
             $products[] = $row;
         }
 
@@ -117,6 +124,29 @@ class Product {
     }
 
     /**
+     * Get images for a product
+     */
+    public function getImages($productId) {
+        $query = "SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order ASC";
+        $stmt = $this->mysqli->prepare($query);
+        $stmt->bind_param("i", $productId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $images = [];
+        while ($row = $result->fetch_assoc()) {
+            $images[] = $row['image_url'];
+        }
+        
+        // Return placeholder if no images
+        if (empty($images)) {
+            return ['/placeholder.svg'];
+        }
+
+        return $images;
+    }
+
+    /**
      * Create product (Admin)
      */
     public function create($data) {
@@ -139,10 +169,55 @@ class Product {
         );
 
         if ($stmt->execute()) {
-            return $this->mysqli->insert_id;
+            $productId = $this->mysqli->insert_id;
+            
+            // Handle images
+            if (!empty($data['images']) && is_array($data['images'])) {
+                $this->saveImages($productId, $data['images']);
+            }
+            
+            // Handle variants
+            if (!empty($data['variants']) && is_array($data['variants'])) {
+                foreach ($data['variants'] as $variant) {
+                    $this->createVariant($productId, $variant);
+                }
+            }
+            
+            return $productId;
         }
 
         throw new Exception("Failed to create product: " . $stmt->error);
+    }
+
+    private function createVariant($productId, $variant) {
+        $query = "INSERT INTO product_variants (product_id, name, price, stock, sku) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $this->mysqli->prepare($query);
+        
+        // Generate SKU if missing
+        $sku = $variant['sku'] ?? strtoupper(substr($variant['name'], 0, 3)) . '-' . time() . '-' . rand(100, 999);
+        
+        $stmt->bind_param(
+            "isdis",
+            $productId,
+            $variant['name'],
+            $variant['price'],
+            $variant['stock'],
+            $sku
+        );
+        $stmt->execute();
+    }
+
+    private function saveImages($productId, $images) {
+        // Clear existing images first if updating
+        $this->mysqli->query("DELETE FROM product_images WHERE product_id = " . intval($productId));
+        
+        $query = "INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)";
+        $stmt = $this->mysqli->prepare($query);
+        
+        foreach ($images as $index => $url) {
+            $stmt->bind_param("isi", $productId, $url, $index);
+            $stmt->execute();
+        }
     }
 
     /**
@@ -169,24 +244,37 @@ class Product {
             }
         }
 
-        if (empty($fields)) {
-            throw new Exception("No valid fields to update");
-        }
+        if (!empty($fields)) {
+            $fields[] = "updated_at = NOW()";
+            $query = "UPDATE products SET " . implode(", ", $fields) . " WHERE id = ?";
+            
+            $stmt = $this->mysqli->prepare($query);
+            $values[] = $id;
+            $types .= 'i';
 
-        $fields[] = "updated_at = NOW()";
-        $query = "UPDATE products SET " . implode(", ", $fields) . " WHERE id = ?";
+            $stmt->bind_param($types, ...$values);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update product: " . $stmt->error);
+            }
+        }
         
-        $stmt = $this->mysqli->prepare($query);
-        $values[] = $id;
-        $types .= 'i';
-
-        $stmt->bind_param($types, ...$values);
-
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update product: " . $stmt->error);
+        // Update images if provided
+        if (isset($data['images']) && is_array($data['images'])) {
+            $this->saveImages($id, $data['images']);
+        }
+        
+        // Update variants if provided
+        if (isset($data['variants']) && is_array($data['variants'])) {
+            // This is a simplified approach: remove all and recreate
+            // In a real app, you might want to update existing ones to preserve IDs
+            $this->mysqli->query("DELETE FROM product_variants WHERE product_id = " . intval($id));
+            foreach ($data['variants'] as $variant) {
+                $this->createVariant($id, $variant);
+            }
         }
 
-        return $stmt->affected_rows;
+        return true;
     }
 
     /**
@@ -194,10 +282,10 @@ class Product {
      */
     public function delete($id) {
         // Delete variants first
-        $query = "DELETE FROM product_variants WHERE product_id = ?";
-        $stmt = $this->mysqli->prepare($query);
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
+        $this->mysqli->query("DELETE FROM product_variants WHERE product_id = " . intval($id));
+        
+        // Delete images
+        $this->mysqli->query("DELETE FROM product_images WHERE product_id = " . intval($id));
 
         // Delete product
         $query = "DELETE FROM products WHERE id = ?";
@@ -227,6 +315,7 @@ class Product {
         $products = [];
         while ($row = $result->fetch_assoc()) {
             $row['variants'] = $this->getVariants($row['id']);
+            $row['images'] = $this->getImages($row['id']);
             $products[] = $row;
         }
 
